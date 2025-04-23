@@ -16,7 +16,7 @@ const Dashboard = () => {
 
     // ✅ Fetch user details (to show name)
     axios
-      .get("https://7fcd-3-147-9-79.ngrok-free.app/api/auth/me", {
+      .get("https://62f3-3-147-9-79.ngrok-free.app//api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setUserName(res.data.name))
@@ -24,7 +24,7 @@ const Dashboard = () => {
 
     // ✅ Fetch notes
     axios
-      .get("https://7fcd-3-147-9-79.ngrok-free.app/api/notes", {
+      .get("https://62f3-3-147-9-79.ngrok-free.app//api/notes", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setNotes(res.data))
