@@ -17,9 +17,13 @@ const NewNote = () => {
     setError("");
 
     try {
-      await axios.post("http://3.147.9.79:3000/api/notes/create", formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        "https://7fcd-3-147-9-79.ngrok-free.app/api/notes/create",
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       alert("Note created successfully!");
       navigate("/dashboard");
     } catch (err) {

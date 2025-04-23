@@ -22,7 +22,7 @@ const SignupPage = () => {
 
     try {
       const response = await axios.post(
-        "http://3.147.9.79:3000/api/auth/signup",
+        "https://7fcd-3-147-9-79.ngrok-free.app/api/auth/signup",
         formData
       );
       console.log(response.data);

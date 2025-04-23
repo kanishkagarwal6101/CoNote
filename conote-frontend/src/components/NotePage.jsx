@@ -3,7 +3,9 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const socket = io("http://3.147.9.79:3000", { transports: ["websocket"] });
+const socket = io("wss://7fcd-3-147-9-79.ngrok-free.app", {
+  transports: ["websocket"],
+});
 
 const NotePage = () => {
   const { id } = useParams(); // note ID
@@ -24,10 +26,10 @@ const NotePage = () => {
     const loadNoteAndUser = async () => {
       try {
         const [noteRes, userRes] = await Promise.all([
-          axios.get(`http://3.147.9.79:3000/api/notes/${id}`, {
+          axios.get(`https://7fcd-3-147-9-79.ngrok-free.app/api/notes/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`http://3.147.9.79:3000/api/auth/me`, {
+          axios.get(`https://7fcd-3-147-9-79.ngrok-free.app/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -71,9 +73,12 @@ const NotePage = () => {
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
     try {
-      await axios.delete(`http://3.147.9.79:3000/api/notes/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://7fcd-3-147-9-79.ngrok-free.app/api/notes/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       alert("Note deleted successfully!");
       navigate("/dashboard");
     } catch {
