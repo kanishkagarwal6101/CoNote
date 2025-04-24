@@ -3,10 +3,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const socket = io("https://conote-backend.onrender.com", {
-  transports: ["websocket"],
-});
-
 const NotePage = () => {
   const { id } = useParams(); // note ID
   const navigate = useNavigate();
@@ -15,7 +11,7 @@ const NotePage = () => {
 
   const [note, setNote] = useState({ title: "", content: "" });
   const [isEditing, setIsEditing] = useState(false);
-  const [activeUsers, setActiveUsers] = useState([]); // 👥 For presence
+  const [activeUsers, setActiveUsers] = useState([]);
 
   useEffect(() => {
     if (!token) {
@@ -23,20 +19,20 @@ const NotePage = () => {
       return;
     }
 
+    const socket = io("https://conote-backend.onrender.com", {
+      transports: ["websocket"],
+    });
+
     const loadNoteAndUser = async () => {
       try {
-        // Step 1: Try to become a collaborator first
+        // Become collaborator
         await axios.post(
           `https://conote-backend.onrender.com/api/notes/${id}/collaborate`,
           {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // Step 2: Fetch note and user
+        // Fetch note and user
         const [noteRes, userRes] = await Promise.all([
           axios.get(`https://conote-backend.onrender.com/api/notes/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -48,10 +44,18 @@ const NotePage = () => {
 
         setNote(noteRes.data);
 
-        // Step 3: Join socket room
+        // Join socket room
         socket.emit("joinNote", {
           noteId: id,
           user: { userId: userRes.data._id, name: userRes.data.name },
+        });
+
+        socket.on("noteUpdated", ({ title, content }) => {
+          setNote({ title, content });
+        });
+
+        socket.on("activeUsers", (users) => {
+          setActiveUsers(users);
         });
       } catch (err) {
         alert("Error loading note or user.");
@@ -61,23 +65,19 @@ const NotePage = () => {
 
     loadNoteAndUser();
 
-    socket.on("noteUpdated", ({ title, content }) => {
-      setNote({ title, content });
-    });
-
-    socket.on("activeUsers", (users) => {
-      setActiveUsers(users);
-    });
-
     return () => {
-      socket.off("noteUpdated");
-      socket.off("activeUsers");
+      socket.disconnect();
     };
   }, [id, token, navigate, location.pathname]);
 
   const handleChange = (e) => {
     const updatedNote = { ...note, [e.target.name]: e.target.value };
     setNote(updatedNote);
+
+    const socket = io("https://conote-backend.onrender.com", {
+      transports: ["websocket"],
+    });
+
     socket.emit("editNote", { noteId: id, ...updatedNote });
   };
 
@@ -106,7 +106,6 @@ const NotePage = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] text-[var(--text)] p-6">
-      {/* 🔄 Active Users Section */}
       <div className="w-full max-w-3xl mb-4 text-left text-sm">
         <button
           onClick={() => navigate("/dashboard")}
@@ -131,7 +130,6 @@ const NotePage = () => {
         )}
       </div>
 
-      {/* 🔏 Note Card UI */}
       <div className="w-full max-w-3xl bg-[#00ffa0] p-8 rounded-xl border-[4px] border-[#05060f] shadow-[8px_8px_0px_0px_#05060f] text-black">
         <div className="flex justify-between items-center mb-6">
           {isEditing ? (
@@ -154,7 +152,6 @@ const NotePage = () => {
           </button>
         </div>
 
-        {/* Content Section */}
         {isEditing ? (
           <textarea
             name="content"
@@ -167,7 +164,6 @@ const NotePage = () => {
           <p className="text-lg">{note.content}</p>
         )}
 
-        {/* Actions */}
         <div className="flex justify-between mt-6">
           <button
             onClick={handleShare}
