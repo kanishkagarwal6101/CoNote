@@ -1,4 +1,3 @@
-// src/socket.js
 import { io } from "socket.io-client";
 
 const socket = io("https://conote-backend.onrender.com", {
@@ -8,11 +7,18 @@ const socket = io("https://conote-backend.onrender.com", {
 
 let currentNoteId = null;
 
-export const joinNoteRoom = (noteId, user) => {
+export const connectSocket = () => {
   if (!socket.connected) socket.connect();
+};
 
+export const joinNoteRoom = (noteId, user) => {
+  connectSocket();
   currentNoteId = noteId;
   socket.emit("joinNote", { noteId, user });
+};
+
+export const leaveNoteRoom = () => {
+  if (currentNoteId) socket.leave(currentNoteId);
 };
 
 export const emitNoteEdit = (noteId, updatedNote) => {
@@ -25,10 +31,6 @@ export const listenNoteUpdates = (callback) => {
 
 export const listenActiveUsers = (callback) => {
   socket.on("activeUsers", callback);
-};
-
-export const leaveNoteRoom = () => {
-  if (currentNoteId) socket.emit("leaveNote", currentNoteId);
 };
 
 export const removeSocketListeners = () => {
