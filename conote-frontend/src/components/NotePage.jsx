@@ -25,6 +25,18 @@ const NotePage = () => {
 
     const loadNoteAndUser = async () => {
       try {
+        // Step 1: Try to become a collaborator first
+        await axios.post(
+          `https://conote-backend.onrender.com/api/notes/${id}/collaborate`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        // Step 2: Fetch note and user
         const [noteRes, userRes] = await Promise.all([
           axios.get(`https://conote-backend.onrender.com/api/notes/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -36,7 +48,7 @@ const NotePage = () => {
 
         setNote(noteRes.data);
 
-        // 🧠 Emit join event with user info
+        // Step 3: Join socket room
         socket.emit("joinNote", {
           noteId: id,
           user: { userId: userRes.data._id, name: userRes.data.name },
@@ -49,7 +61,6 @@ const NotePage = () => {
 
     loadNoteAndUser();
 
-    // 👀 Listen for real-time updates
     socket.on("noteUpdated", ({ title, content }) => {
       setNote({ title, content });
     });
