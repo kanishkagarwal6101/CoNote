@@ -46,16 +46,22 @@ router.post("/login", async (req, res) => {
       expiresIn: "1h",
     });
 
-    res
-      .status(200)
-      .json({
-        token,
-        user: { id: user._id, name: user.name, email: user.email },
-      });
+    res.status(200).json({
+      token,
+      user: { id: user._id, name: user.name, email: user.email },
+    });
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
   }
 });
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user).select("-password");
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
+    res.json({ name: user.name, email: user.email });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error" });
+  }
+});
 export default router;
- 
