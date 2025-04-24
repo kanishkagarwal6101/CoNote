@@ -8,7 +8,7 @@ import {
   listenNoteUpdates,
   listenActiveUsers,
   removeSocketListeners,
-} from "./socket";
+} from "../socket";
 
 const NotePage = () => {
   const { id } = useParams();
@@ -28,14 +28,12 @@ const NotePage = () => {
 
     const loadData = async () => {
       try {
-        // Become collaborator
         await axios.post(
           `https://conote-backend.onrender.com/api/notes/${id}/collaborate`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // Fetch note and user
         const [noteRes, userRes] = await Promise.all([
           axios.get(`https://conote-backend.onrender.com/api/notes/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -47,13 +45,12 @@ const NotePage = () => {
 
         setNote(noteRes.data);
 
-        // Join socket room
+        // ✅ Join socket and listen for updates
         joinNoteRoom(id, {
           userId: userRes.data._id,
           name: userRes.data.name,
         });
 
-        // Listen for real-time updates
         listenNoteUpdates(({ title, content }) => {
           setNote({ title, content });
         });
@@ -62,7 +59,7 @@ const NotePage = () => {
           setActiveUsers(users);
         });
       } catch (err) {
-        console.error(err);
+        console.error("Error loading note:", err);
         alert("Error loading note or user.");
         navigate("/dashboard");
       }
