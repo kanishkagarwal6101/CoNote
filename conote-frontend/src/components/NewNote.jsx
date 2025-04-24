@@ -18,7 +18,7 @@ const NewNote = () => {
 
     try {
       await axios.post(
-        "https://62f3-3-147-9-79.ngrok-free.app/api/notes/create",
+        "https://conote-backend.onrender.com/api/notes/create",
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },

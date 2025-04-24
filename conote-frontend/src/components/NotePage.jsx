@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const socket = io("wss://62f3-3-147-9-79.ngrok-free.app/", {
+const socket = io("https://conote-backend.onrender.com", {
   transports: ["websocket"],
 });
 
@@ -26,10 +26,10 @@ const NotePage = () => {
     const loadNoteAndUser = async () => {
       try {
         const [noteRes, userRes] = await Promise.all([
-          axios.get(`https://62f3-3-147-9-79.ngrok-free.app/api/notes/${id}`, {
+          axios.get(`https://conote-backend.onrender.com/api/notes/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`https://62f3-3-147-9-79.ngrok-free.app/api/auth/me`, {
+          axios.get(`https://conote-backend.onrender.com/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -74,7 +74,7 @@ const NotePage = () => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
     try {
       await axios.delete(
-        `https://62f3-3-147-9-79.ngrok-free.app/api/notes/${id}`,
+        `https://conote-backend.onrender.com/api/notes/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

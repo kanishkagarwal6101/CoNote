@@ -22,7 +22,7 @@ const SignupPage = () => {
 
     try {
       const response = await axios.post(
-        "https://62f3-3-147-9-79.ngrok-free.app/api/auth/signup",
+        "https://conote-backend.onrender.com/api/auth/signup",
         formData
       );
       console.log(response.data);
