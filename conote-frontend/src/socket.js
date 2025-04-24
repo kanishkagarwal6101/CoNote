@@ -1,5 +1,6 @@
 import { io } from "socket.io-client";
 
+// Create one socket instance only once
 const socket = io("https://conote-backend.onrender.com", {
   transports: ["websocket"],
   autoConnect: false,
@@ -18,7 +19,7 @@ export const joinNoteRoom = (noteId, user) => {
 };
 
 export const leaveNoteRoom = () => {
-  if (currentNoteId) socket.leave(currentNoteId);
+  if (currentNoteId) socket.emit("leaveNote", currentNoteId);
 };
 
 export const emitNoteEdit = (noteId, updatedNote) => {

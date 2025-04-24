@@ -61,7 +61,14 @@ io.on("connection", (socket) => {
 
     console.log(`🟢 ${user.name} joined note ${noteId}`);
   });
-
+  socket.on("leaveNote", (noteId) => {
+    const { userId } = socketToUserMap[socket.id] || {};
+    if (noteId && userId && activeUsersPerNote[noteId]) {
+      delete activeUsersPerNote[noteId][userId];
+      const usersArray = Object.values(activeUsersPerNote[noteId]);
+      io.to(noteId).emit("activeUsers", usersArray);
+    }
+  });
   socket.on("editNote", async ({ noteId, title, content }) => {
     await Note.findByIdAndUpdate(noteId, { title, content });
     socket.to(noteId).emit("noteUpdated", { title, content });
