@@ -1,10 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { io } from "socket.io-client";
+import {
+  joinNoteRoom,
+  leaveNoteRoom,
+  emitNoteEdit,
+  listenNoteUpdates,
+  listenActiveUsers,
+  removeSocketListeners,
+} from "./socket";
 
 const NotePage = () => {
-  const { id } = useParams(); // note ID
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem("token");
@@ -19,11 +26,7 @@ const NotePage = () => {
       return;
     }
 
-    const socket = io("https://conote-backend.onrender.com", {
-      transports: ["websocket"],
-    });
-
-    const loadNoteAndUser = async () => {
+    const loadData = async () => {
       try {
         // Become collaborator
         await axios.post(
@@ -45,40 +48,38 @@ const NotePage = () => {
         setNote(noteRes.data);
 
         // Join socket room
-        socket.emit("joinNote", {
-          noteId: id,
-          user: { userId: userRes.data._id, name: userRes.data.name },
+        joinNoteRoom(id, {
+          userId: userRes.data._id,
+          name: userRes.data.name,
         });
 
-        socket.on("noteUpdated", ({ title, content }) => {
+        // Listen for real-time updates
+        listenNoteUpdates(({ title, content }) => {
           setNote({ title, content });
         });
 
-        socket.on("activeUsers", (users) => {
+        listenActiveUsers((users) => {
           setActiveUsers(users);
         });
       } catch (err) {
+        console.error(err);
         alert("Error loading note or user.");
         navigate("/dashboard");
       }
     };
 
-    loadNoteAndUser();
+    loadData();
 
     return () => {
-      socket.disconnect();
+      leaveNoteRoom();
+      removeSocketListeners();
     };
   }, [id, token, navigate, location.pathname]);
 
   const handleChange = (e) => {
     const updatedNote = { ...note, [e.target.name]: e.target.value };
     setNote(updatedNote);
-
-    const socket = io("https://conote-backend.onrender.com", {
-      transports: ["websocket"],
-    });
-
-    socket.emit("editNote", { noteId: id, ...updatedNote });
+    emitNoteEdit(id, updatedNote);
   };
 
   const handleDelete = async () => {

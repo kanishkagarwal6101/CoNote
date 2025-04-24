@@ -37,56 +37,45 @@ const io = new Server(server, {
   cors: corsOptions,
 });
 
-const activeUsersPerNote = {}; // { noteId: [{ userId, name }] }
+const activeUsersPerNote = {}; // { noteId: { userId: user } }
+const socketToUserMap = {}; // socket.id => { noteId, userId }
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // ✅ Join note with user info
   socket.on("joinNote", ({ noteId, user }) => {
     socket.join(noteId);
-    socket.noteId = noteId;
-    socket.user = user;
+    socketToUserMap[socket.id] = { noteId, userId: user.userId };
 
-    if (!activeUsersPerNote[noteId]) activeUsersPerNote[noteId] = [];
-
-    const alreadyExists = activeUsersPerNote[noteId].some(
-      (u) => u.userId === user.userId
-    );
-
-    if (!alreadyExists) {
-      activeUsersPerNote[noteId].push(user);
+    if (!activeUsersPerNote[noteId]) {
+      activeUsersPerNote[noteId] = {};
     }
 
-    // Broadcast updated list of active users
-    io.to(noteId).emit("activeUsers", activeUsersPerNote[noteId]);
+    activeUsersPerNote[noteId][user.userId] = user;
+
+    const usersArray = Object.values(activeUsersPerNote[noteId]);
+    io.to(noteId).emit("activeUsers", usersArray);
     console.log(`${user.name} joined note ${noteId}`);
   });
 
-  // ✅ Handle real-time editing
   socket.on("editNote", async ({ noteId, title, content }) => {
     console.log("Editing Note:", noteId, title, content);
-
-    // Update in DB
     await Note.findByIdAndUpdate(noteId, { title, content });
-
-    // Broadcast update
     socket.to(noteId).emit("noteUpdated", { title, content });
   });
 
-  // ✅ Handle disconnection
   socket.on("disconnect", () => {
-    const noteId = socket.noteId;
-    const user = socket.user;
-
-    if (noteId && user && activeUsersPerNote[noteId]) {
-      activeUsersPerNote[noteId] = activeUsersPerNote[noteId].filter(
-        (u) => u.userId !== user.userId
-      );
-      io.to(noteId).emit("activeUsers", activeUsersPerNote[noteId]);
-      console.log(`${user.name} disconnected from note ${noteId}`);
+    const socketData = socketToUserMap[socket.id];
+    if (socketData) {
+      const { noteId, userId } = socketData;
+      if (activeUsersPerNote[noteId]) {
+        delete activeUsersPerNote[noteId][userId];
+        const usersArray = Object.values(activeUsersPerNote[noteId]);
+        io.to(noteId).emit("activeUsers", usersArray);
+        console.log(`User ${userId} disconnected from note ${noteId}`);
+      }
+      delete socketToUserMap[socket.id];
     }
-
     console.log("User disconnected:", socket.id);
   });
 });
