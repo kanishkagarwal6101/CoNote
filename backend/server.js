@@ -13,9 +13,9 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// ✅ CORS Configuration (unchanged)
+// ✅ CORS Configuration
 const corsOptions = {
-  origin: "*", // Allow all origins for now (change later for security)
+  origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: "Content-Type, Authorization",
   credentials: true,
@@ -37,49 +37,58 @@ const io = new Server(server, {
   cors: corsOptions,
 });
 
-const activeUsersPerNote = {}; // { noteId: { userId: user } }
-const socketToUserMap = {}; // socket.id => { noteId, userId }
+// Tracks socketId -> { noteId, userId, name }
+const socketToUserMap = {};
+// Tracks noteId -> Map<userId, { userId, name }>
+const activeUsersPerNote = {};
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("✅ User connected:", socket.id);
 
   socket.on("joinNote", ({ noteId, user }) => {
     socket.join(noteId);
-    socketToUserMap[socket.id] = { noteId, userId: user.userId };
+
+    socketToUserMap[socket.id] = { noteId, user };
 
     if (!activeUsersPerNote[noteId]) {
-      activeUsersPerNote[noteId] = {};
+      activeUsersPerNote[noteId] = new Map();
     }
 
-    activeUsersPerNote[noteId][user.userId] = user;
+    activeUsersPerNote[noteId].set(user.userId, user);
 
-    const usersArray = Object.values(activeUsersPerNote[noteId]);
+    const usersArray = Array.from(activeUsersPerNote[noteId].values());
     io.to(noteId).emit("activeUsers", usersArray);
-    console.log(`${user.name} joined note ${noteId}`);
+
+    console.log(`🟢 ${user.name} joined note ${noteId}`);
   });
 
   socket.on("editNote", async ({ noteId, title, content }) => {
-    console.log("Editing Note:", noteId, title, content);
     await Note.findByIdAndUpdate(noteId, { title, content });
     socket.to(noteId).emit("noteUpdated", { title, content });
   });
 
   socket.on("disconnect", () => {
-    const socketData = socketToUserMap[socket.id];
-    if (socketData) {
-      const { noteId, userId } = socketData;
+    const data = socketToUserMap[socket.id];
+
+    if (data) {
+      const { noteId, user } = data;
+
       if (activeUsersPerNote[noteId]) {
-        delete activeUsersPerNote[noteId][userId];
-        const usersArray = Object.values(activeUsersPerNote[noteId]);
+        activeUsersPerNote[noteId].delete(user.userId);
+
+        const usersArray = Array.from(activeUsersPerNote[noteId].values());
         io.to(noteId).emit("activeUsers", usersArray);
-        console.log(`User ${userId} disconnected from note ${noteId}`);
+
+        console.log(`🔴 ${user.name} disconnected from note ${noteId}`);
       }
+
       delete socketToUserMap[socket.id];
     }
-    console.log("User disconnected:", socket.id);
+
+    console.log("⚪ Socket disconnected:", socket.id);
   });
 });
 
 // ✅ Start Server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
